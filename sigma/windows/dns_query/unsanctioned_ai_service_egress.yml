@@ -1,0 +1,50 @@
+title: DNS Query to Unsanctioned Generative AI Service
+id: c47b0e91-3a52-4d68-9f14-6b8de2057a33
+status: experimental
+description: |
+  Detects DNS resolution of generative AI service domains from a managed endpoint.
+  Intended as shadow-AI governance signal rather than compromise signal. Process
+  attribution is the operative field: browser-initiated resolution is a policy
+  conversation, script-initiated resolution indicates automated data movement.
+  The sanctioned/unsanctioned split is environment specific and is expected to be
+  maintained in a lookup rather than inline in this rule.
+references:
+    - https://attack.mitre.org/techniques/T1567/
+    - https://attack.mitre.org/techniques/T1071/001/
+author: Kamsochi Ekwueme
+date: 2026-09-09
+tags:
+    - attack.exfiltration
+    - attack.t1567
+    - attack.command-and-control
+    - attack.t1071.001
+logsource:
+    product: windows
+    category: dns_query
+detection:
+    selection_domain:
+        QueryName|contains:
+            - 'api.openai.com'
+            - 'chatgpt.com'
+            - 'gemini.google.com'
+            - 'copilot.microsoft.com'
+            - 'perplexity.ai'
+            - 'huggingface.co'
+    selection_scripted_client:
+        Image|endswith:
+            - '\powershell.exe'
+            - '\pwsh.exe'
+            - '\python.exe'
+            - '\curl.exe'
+            - '\wget.exe'
+            - '\node.exe'
+    filter_sanctioned:
+        QueryName|contains:
+            - 'claude.ai'
+            - 'api.anthropic.com'
+    condition: selection_domain and selection_scripted_client and not filter_sanctioned
+falsepositives:
+    - Approved developer tooling calling model APIs for legitimate build or test workloads
+    - Security tooling performing domain reputation lookups
+    - Package managers resolving model or dataset hosting domains
+level: medium

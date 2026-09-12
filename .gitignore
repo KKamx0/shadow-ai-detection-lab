@@ -1,0 +1,19 @@
+# Never commit raw telemetry
+*.evtx
+*.pcap
+*.log
+raw/
+exports/
+
+# Splunk artifacts
+*.tgz
+splunk-*/
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Scratch
+scratch/
+*.tmp

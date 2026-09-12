@@ -1,0 +1,11 @@
+domain,service,category,sanctioned
+api.openai.com,OpenAI API,api,false
+chatgpt.com,ChatGPT,chat,false
+claude.ai,Claude,chat,true
+api.anthropic.com,Anthropic API,api,true
+gemini.google.com,Gemini,chat,false
+copilot.microsoft.com,Microsoft Copilot,chat,false
+perplexity.ai,Perplexity,chat,false
+huggingface.co,Hugging Face,model-host,false
+api.cohere.ai,Cohere API,api,false
+api.mistral.ai,Mistral API,api,false
