@@ -90,4 +90,4 @@ Splunk Free does not support alerting or scheduled searches. Detections in this 
 
 ## Author
 
-Kamsochi Ekwueme — [LinkedIn](https://linkedin.com/in/kamsochi-iwe) — [GitHub](https://github.com/KKamx0)
+Kamsochi Ekwueme — [LinkedIn](https://linkedin.com/in/kamsochi-ekwueme-7097b0284) — [GitHub](https://github.com/KKamx0)
