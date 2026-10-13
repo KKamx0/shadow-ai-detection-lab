@@ -1,6 +1,6 @@
 # Shadow AI Detection Lab
 
-A single-host detection engineering lab built to answer one question: **when a user moves sensitive data into an unsanctioned AI tool, what does that look like in endpoint telemetry, and can you write a rule that catches it?**
+A single-host detection engineering lab built around one question: **when a user moves sensitive data into an unsanctioned AI tool, what does that look like in endpoint telemetry, and can you write a rule that catches it?** That question drives about half of the detection set. The other half is a baseline of standard endpoint detections. The detection index marks which is which.
 
 Detections are authored in Sigma, converted to SPL, validated against live Sysmon telemetry in Splunk, and mapped to MITRE ATT&CK. Every detection ships with its false positives and the tuning it took to get there.
 
@@ -13,6 +13,8 @@ Detections are authored in Sigma, converted to SPL, validated against live Sysmo
 Most home SOC labs detect brute force and Mimikatz. Those techniques are well covered by every SIEM vendor on earth. The gap that is not well covered is **data movement into AI services** — a control problem that most organizations currently handle with a policy document and nothing else.
 
 This lab treats shadow AI usage as a detection engineering problem instead of a policy problem, and asks what telemetry would actually be needed to enforce it.
+
+The detection set is deliberately split. The shadow AI and data movement detections are the focus of the lab. The standard endpoint detections (encoded PowerShell, LOLBin tool transfer, browser credential store access, registry persistence, brute force) are included as a baseline, because a detection library that covers only one novel theme says nothing about whether the author can handle ordinary endpoint telemetry. Both are needed, and they serve different purposes.
 
 ## Scope and boundaries
 
@@ -62,18 +64,18 @@ Single VM by design. Attack generation happens on the monitored host, which is e
 
 ## Detection index
 
-| # | Detection | ATT&CK | Telemetry | Status |
-| --- | --- | --- | --- | --- |
-| 01 | Encoded PowerShell command | T1059.001, T1027 | Sysmon EID 1 | Draft |
-| 02 | Egress to unsanctioned AI service | T1567 | Sysmon EID 1, 3, 22 | Draft |
-| 03 | Archive staging before egress | T1560.001, T1074.001 | Sysmon EID 1, 11 | Draft |
-| 04 | Clipboard capture volume anomaly | T1115 | Sysmon EID 24 | Planned |
-| 05 | Ingress tool transfer via LOLBin | T1105, T1218 | Sysmon EID 1, 3 | Planned |
-| 06 | Bulk document read burst | T1005 | Sysmon EID 11, WinEvent 4663 | Planned |
-| 07 | Browser credential store access | T1555.003 | Sysmon EID 10 | Planned |
-| 08 | Registry Run key persistence | T1547.001 | Sysmon EID 12, 13 | Planned |
-| 09 | Failed logon burst then success | T1110, T1078 | WinEvent 4625, 4624 | Planned |
-| 10 | Correlated: read burst, archive, egress | T1005 + T1560 + T1567 | Multi-source | Planned |
+| # | Detection | ATT&CK | Telemetry | Focus | Status |
+| --- | --- | --- | --- | --- | --- |
+| 01 | Encoded PowerShell command | T1059.001, T1027 | Sysmon EID 1 | Baseline | Draft |
+| 02 | Egress to unsanctioned AI service | T1567 | Sysmon EID 1, 3, 22 | Shadow AI | Draft |
+| 03 | Archive staging before egress | T1560.001, T1074.001 | Sysmon EID 1, 11 | Shadow AI | Draft |
+| 04 | Clipboard capture volume anomaly | T1115 | Sysmon EID 24 | Shadow AI | Planned |
+| 05 | Ingress tool transfer via LOLBin | T1105, T1218 | Sysmon EID 1, 3 | Baseline | Planned |
+| 06 | Bulk document read burst | T1005 | Sysmon EID 11, WinEvent 4663 | Shadow AI | Planned |
+| 07 | Browser credential store access | T1555.003 | Sysmon EID 10 | Baseline | Planned |
+| 08 | Registry Run key persistence | T1547.001 | Sysmon EID 12, 13 | Baseline | Planned |
+| 09 | Failed logon burst then success | T1110, T1078 | WinEvent 4625, 4624 | Baseline | Planned |
+| 10 | Correlated: read burst, archive, egress | T1005 + T1560 + T1567 | Multi-source | Shadow AI | Planned |
 
 ## Known limitations
 
