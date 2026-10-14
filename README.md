@@ -66,8 +66,8 @@ Single VM by design. Attack generation happens on the monitored host, which is e
 
 | # | Detection | ATT&CK | Telemetry | Focus | Status |
 | --- | --- | --- | --- | --- | --- |
-| 01 | Encoded PowerShell command | T1059.001, T1027 | Sysmon EID 1 | Baseline | Draft |
-| 02 | Egress to unsanctioned AI service | T1567 | Sysmon EID 1, 3, 22 | Shadow AI | Draft |
+| 01 | Encoded PowerShell command | T1059.001, T1027 | Sysmon EID 1 | Baseline | Validated |
+| 02 | Egress to unsanctioned AI service | T1567 | Sysmon EID 1, 3, 22 | Shadow AI | Validated |
 | 03 | Archive staging before egress | T1560.001, T1074.001 | Sysmon EID 1, 11 | Shadow AI | Draft |
 | 04 | Clipboard capture volume anomaly | T1115 | Sysmon EID 24 | Shadow AI | Planned |
 | 05 | Ingress tool transfer via LOLBin | T1105, T1218 | Sysmon EID 1, 3 | Baseline | Planned |
@@ -76,6 +76,8 @@ Single VM by design. Attack generation happens on the monitored host, which is e
 | 08 | Registry Run key persistence | T1547.001 | Sysmon EID 12, 13 | Baseline | Planned |
 | 09 | Failed logon burst then success | T1110, T1078 | WinEvent 4625, 4624 | Baseline | Planned |
 | 10 | Correlated: read burst, archive, egress | T1005 + T1560 + T1567 | Multi-source | Shadow AI | Planned |
+
+Status values: **Planned** means not yet written. **Draft** means written but not run against live telemetry. **Validated** means the detection fired against generated behavior in this lab, with evidence in `screenshots/`, but the false positive and tuning steps of [docs/detection-standard.md](docs/detection-standard.md) are not done. **Complete** means every step of that standard is done. No detection is Complete yet.
 
 ## Known limitations
 

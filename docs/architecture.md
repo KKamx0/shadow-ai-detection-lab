@@ -24,7 +24,7 @@ flowchart TD
 
 Each stage can drop data without raising an error. Sysmon only records what its config allows through, and Splunk can only search what reaches the channel. This is why the validation loop in [detection-standard.md](detection-standard.md) queries for the raw event before any rule is written. The 2026-09-12 entry in [lab-build.md](lab-build.md) records a case where the config stage was silently dropping EID 1 and EID 22.
 
-The Splunk stage is part of the design but is not yet built. Splunk installation and ingestion of the Sysmon channel are open items in [ROADMAP.md](../ROADMAP.md).
+The full pipeline was confirmed end to end on 2026-10-14: Sysmon events reach Splunk Enterprise 10.4.3 in `index=endpoint` with fields parsed by the Splunk Add-on for Sysmon. See the 2026-10-14 entry in [lab-build.md](lab-build.md).
 
 ## Lab specification
 
@@ -42,7 +42,7 @@ The Splunk stage is part of the design but is not yet built. Splunk installation
 | Firmware | UEFI, Secure Boot enabled, TPM 2.0 |
 | Network | NAT |
 | Audio | Disabled |
-| Hostname | VICTIM-01 |
+| Hostname | DESKTOP-TSIOB4T (intended name VICTIM-01 was never set) |
 | Local account | analyst |
 
 ## Why a single VM
@@ -51,7 +51,7 @@ The previous build on this host used multiple VMs and Wazuh. It failed with gues
 
 A conventional multi-host range separates an attacker machine from a victim machine because it models an external adversary reaching into the network. Shadow AI usage and insider data movement do not work that way. The activity starts on the endpoint being monitored, under a legitimate user account, using tools already present on the machine: a browser, PowerShell, an archive utility, a desktop AI client. There is no separate attacker host in the real scenario, so adding one to the lab would produce telemetry that does not match what the detections need to catch.
 
-For the same reason, attack generation happens on the monitored host. Atomic Red Team tests and manual commands run on VICTIM-01 itself, so the process trees, parent-child relationships, user context, and network connections in the telemetry originate where they would in a real insider or shadow-AI event.
+For the same reason, attack generation happens on the monitored host. Atomic Red Team tests and manual commands run on the monitored VM itself, so the process trees, parent-child relationships, user context, and network connections in the telemetry originate where they would in a real insider or shadow-AI event.
 
 The trade-off is that this lab does not cover lateral movement or other techniques that need a second host. Those are out of scope.
 
@@ -90,7 +90,7 @@ Taken from the detection index in [README.md](../README.md). The last column com
 | 09 | Failed logon burst then success | WinEvent 4625, 4624 | Not verified. Windows Security log, not Sysmon |
 | 10 | Correlated: read burst, archive, egress | Multi-source | Depends on 03, 06, and 02 |
 
-Telemetry being present is a prerequisite for a detection, not evidence that it works. No detection in this repository is validated yet. Status for each is in the README index and [ROADMAP.md](../ROADMAP.md).
+Telemetry being present is a prerequisite for a detection, not evidence that it works. Detections 01 and 02 have been validated against live telemetry. None is complete under [detection-standard.md](detection-standard.md), because no false positive rate has been measured and neither has a tuning history. Status for each is in the README index and [ROADMAP.md](../ROADMAP.md).
 
 ## Known blind spots
 
