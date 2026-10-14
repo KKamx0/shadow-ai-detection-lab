@@ -146,12 +146,16 @@ In this lab, layers 1 and 2 are in place and layer 3 is not. A connection that e
 
 ## False positives
 
+**Anticipated false positives.** The sources below are expected in an enterprise environment. None were observed in this lab.
+
 | Source | Frequency | Handling |
 | --- | --- | --- |
 | Sanctioned tools that embed a model provider (IDE assistants, browser features) | High | Maintain the `sanctioned` column properly, review monthly |
 | Ad and telemetry domains that resolve near AI domains | Low | Registered-domain extraction rather than substring match |
 | Security tooling performing reputation lookups | Occasional | Allowlist by `Image` with signature verification |
 | A user reading an article about AI | Routine | This rule fires on DNS to the service, not to news coverage of it. Confirm domain list hygiene |
+
+The lab VM has no endpoint management agents, no developer tooling, and no real user activity. Its benign baseline is not representative of a production endpoint, and no false positive rate has been measured.
 
 The dominant failure mode is not false positives, it is **the domain list going stale**. A rule that was 95 percent accurate in January is 60 percent accurate in June because eleven new services launched. Build the review cadence into the runbook or the rule dies quietly.
 

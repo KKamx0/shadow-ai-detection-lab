@@ -41,7 +41,6 @@ The detection set is deliberately split. The shadow AI and data movement detecti
         |            v                                   |
         |   Splunk Enterprise 10.4.3 (single instance)   |
         |     + Splunk Add-on for Sysmon (app 5709)      |
-        |     + Splunk Add-on for Windows                |
         |            ^                                   |
         |            |                                   |
         |   Atomic Red Team (attack generation)          |

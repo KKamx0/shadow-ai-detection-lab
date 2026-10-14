@@ -6,10 +6,12 @@
 - [x] VM built: Windows 11 Enterprise LTSC Evaluation, 80GB, 6GB RAM, 2 vCPU, NAT.
 - [x] Guest Additions installed.
 - [ ] Windows Defender real-time protection disabled for test execution.
-- [ ] Sysmon installed with sysmon-modular configuration.
-- [ ] Splunk Enterprise installed and indexing the Sysmon channel.
-- [ ] Splunk Add-on for Sysmon installed and CIM mapping verified.
-- [ ] First search confirms Sysmon events are searchable.
+- [x] Sysmon 15.22 installed.
+- [x] Sysmon configured with the SwiftOnSecurity sysmon-config. The sysmon-modular default config was tried first and dropped EID 1 and 22. See `docs/lab-build.md`, 2026-09-12.
+- [x] Splunk Enterprise installed and indexing the Sysmon channel.
+- [x] Splunk Add-on for Sysmon installed and parsing fields.
+- [ ] CIM data model mapping verified.
+- [x] First search confirms Sysmon events are searchable.
 
 ## Phase 2 — Detections
 
