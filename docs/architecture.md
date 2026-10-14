@@ -94,6 +94,8 @@ Telemetry being present is a prerequisite for a detection, not evidence that it 
 
 ## Known blind spots
 
+The full, maintained list is in [telemetry-gaps.md](telemetry-gaps.md). The most serious is that browser-based access to AI services produced no DNS or network events in testing on 2026-10-14.
+
 **TLS hides payload content.** Sysmon EID 22 records the hostname queried and EID 3 records the connection, but traffic to AI services is TLS-encrypted and this lab has no interception. Detection 02 can establish that a connection to an AI service occurred, from which process, and how often. It cannot establish what data was sent. Content-level visibility requires a DLP agent, a CASB, or a TLS-inspecting proxy, none of which are part of this lab.
 
 **PowerShell process creation filtering.** The SwiftOnSecurity Sysmon config deliberately excludes some PowerShell process creation events to reduce noise. Any encoded PowerShell invocation that falls inside those exclusions never produces an EID 1 event, so detection 01 will not see it and will not error. This is tracked as an open follow-up in the 2026-09-12 entry of [lab-build.md](lab-build.md): the config needs tuning, with a documented before and after, once detection 01 is validated.

@@ -56,7 +56,7 @@ Single VM by design. Attack generation happens on the monitored host, which is e
 | `detections/` | One markdown file per detection: hypothesis, logic, telemetry, false positives, tuning history |
 | `sigma/` | The Sigma rule for each detection, vendor agnostic |
 | `investigations/` | Full incident writeups: alert to timeline to verdict |
-| `docs/` | Architecture, build log, and the detection authoring standard |
+| `docs/` | Architecture, build log, telemetry gaps, and the detection authoring standard |
 | `coverage/` | ATT&CK Navigator layer JSON and coverage notes |
 | `screenshots/` | Evidence that each detection fired |
 | `scripts/` | Setup and validation helpers |
@@ -79,6 +79,8 @@ Single VM by design. Attack generation happens on the monitored host, which is e
 Status values: **Planned** means not yet written. **Draft** means written but not run against live telemetry. **Validated** means the detection fired against generated behavior in this lab, with evidence in `screenshots/`, but the false positive and tuning steps of [docs/detection-standard.md](docs/detection-standard.md) are not done. **Complete** means every step of that standard is done. No detection is Complete yet.
 
 ## Known limitations
+
+**Telemetry gaps.** This lab's sensors do not see everything. Most significantly, browser-based access to AI services produced no DNS or network events in testing, so detection 02 covers programmatic access from scripted clients, not shadow AI generally. Read [docs/telemetry-gaps.md](docs/telemetry-gaps.md) before trusting any detection here.
 
 Splunk Free does not support alerting or scheduled searches. Detections in this repo were built and scheduled during the 60-day Enterprise Trial window, with evidence captured in `screenshots/`. After the trial expires the logic remains valid and runnable as ad-hoc searches, but scheduled execution requires a licensed instance. This is documented rather than hidden because it is a real constraint every home lab hits.
 

@@ -2,9 +2,24 @@
 
 ## Hypothesis
 
-A user or process on a managed endpoint sends data to a generative AI service that is not on the organization's approved list, either through a browser session, a desktop client, or a script calling the service API directly.
+A scripted client on a managed endpoint, such as PowerShell, `curl.exe`, or Python, contacts a generative AI service that is not on the organization's approved list.
+
+The broader behavior this lab set out to detect is any data movement into an unsanctioned AI service, including through a browser. Testing showed that this lab's telemetry does not see browser-based access, so this detection is scoped to programmatic access from scripted clients. It is not general shadow AI coverage. See Coverage below.
 
 This is the flagship detection of this lab. It is deliberately harder than it looks, and the interesting work is in the parts that fail.
+
+## Coverage
+
+Tested on 2026-10-14 against AI service domains on the lab VM. Detail for each gap is in [docs/telemetry-gaps.md](../docs/telemetry-gaps.md).
+
+| Client | Domain captured (EID 22) | Process attributed | Network connection (EID 3) |
+| --- | --- | --- | --- |
+| PowerShell (`Resolve-DnsName`, `Invoke-WebRequest`) | Yes | Yes | Yes |
+| `curl.exe` | Yes | No, logged as `<unknown process>` | Not tested |
+| Microsoft Edge | No | No, only EID 1 | No |
+| `nslookup.exe` | No | No | Not tested |
+
+Only PowerShell is fully covered. Browser-based access, the dominant real-world path for shadow AI, is not detected.
 
 ## ATT&CK mapping
 
@@ -23,11 +38,11 @@ The mapping is imperfect and that is worth saying out loud. ATT&CK models advers
 | Sysmon | 3 (Network Connect) | Destination IP and port, initiating process |
 | Sysmon | 1 (Process Create) | Identifies non-browser clients and script-based API calls |
 
-Sysmon config sections required: `DnsQuery` must be enabled and must not be filtered down to a small include list. `NetworkConnect` must be enabled. Both are expensive and both are disabled or heavily filtered in many stock configs. `sysmon-modular` enables them.
+Sysmon config sections required: `DnsQuery` must be enabled and must not be filtered down to a small include list. `NetworkConnect` must be enabled. Both are expensive and both are disabled or heavily filtered in many stock configs. In this lab, `Sysmon64.exe -c` reports both enabled under the SwiftOnSecurity config.
 
 **The hard constraint.** Sysmon EID 22 gives you the hostname, not the payload. TLS means the request body is invisible without interception you do not have in this lab. So this detection answers "did this host talk to an AI service, from what process, how often" and it does not answer "what data left." That boundary is a finding, not a shortcoming, and it is the honest version of what endpoint telemetry can do here. Content-level enforcement requires a CASB, a DLP agent, or a TLS-inspecting proxy. Naming that gap is more valuable than pretending the rule closes it.
 
-**Scripted access to consumer front-ends is bot-blocked.** During validation, `Invoke-WebRequest` to `https://chatgpt.com` received a Cloudflare bot challenge instead of the page content. The detection still fired, because DNS resolution and the TLS connection both completed before the challenge was served. The implication is that real bulk data movement to AI services is more likely to go through APIs than through scripted requests to chat front-ends. `lookups/ai_services.csv` should therefore weight API endpoints over chat front-end domains.
+**Scripted access to consumer front-ends is bot-blocked.** During validation, `Invoke-WebRequest` to `https://chatgpt.com` received a Cloudflare bot challenge instead of the page content. The detection still fired, because DNS resolution and the TLS connection both completed before the challenge was served. `Invoke-WebRequest` to `https://api.openai.com` returned the API's welcome JSON. Consumer front-ends bot-block scripted access, and API endpoints do not. The implication is that real bulk data movement to AI services is more likely to go through APIs than through scripted requests to chat front-ends. `lookups/ai_services.csv` should therefore weight API endpoints over chat front-end domains.
 
 **Case sensitivity, resolved.** DNS is case-insensitive, so a client can resolve `ChatGPT.com` and reach the same service as `chatgpt.com`. Splunk lookups are case-sensitive by default, so the lookup would silently miss the mixed-case query. Logic query 1 now lowercases `QueryName` before the lookup. Verified 2026-10-14 with mixed-case queries, see Validation test 5.
 
@@ -101,11 +116,12 @@ Planned tests and what was actually run:
 
 | # | Planned test | Status |
 | --- | --- | --- |
-| 1 | Browser session to an unsanctioned service | Not run |
+| 1 | Browser session to an unsanctioned service | Run. `Clear-DnsClientCache`, then `Start-Process "https://chatgpt.com"`, which opened Microsoft Edge. Only EID 1 (count 2). No EID 22, no EID 3. See Finding 4 |
 | 2 | Scripted call with `Invoke-WebRequest` | Run once from `powershell.exe` against `https://chatgpt.com`. Not run against an API endpoint and not in a loop. `api.openai.com` was resolved separately with `Resolve-DnsName api.openai.com` from an admin PowerShell session |
-| 3 | Same call from `curl.exe` | Not run |
+| 3 | Same call from `curl.exe` | Run. `curl.exe -s -o NUL https://api.openai.com`. EID 22 captured and matched OpenAI API, but `Image` was `<unknown process>`. See Finding 5 |
 | 4 | Bypass DNS-based detection | Not run as planned. A DNS bypass was found by accident with `nslookup`, see Finding 2 |
 | 5 | Mixed-case domains | Run. `Resolve-DnsName ChatGPT.com` and `Resolve-DnsName API.OpenAI.com` both matched, see Finding 1 |
+| 6 | `Invoke-WebRequest` to an API endpoint | Run. `Invoke-WebRequest https://api.openai.com` returned the API's welcome JSON, with no bot challenge |
 
 The findings were first observed with simplified searches. Both Logic queries were then re-run exactly as written, and the evidence screenshots show those documented queries.
 
@@ -131,6 +147,8 @@ Result: 2 rows, one per service. Both mixed-case queries matched.
 
 The OpenAI API row confirms the lookup matches API domains on the full `QueryName`. Both rows confirm that mixed-case queries are caught.
 
+The results are grouped by service, so `QueryName` is not displayed in the screenshot. The mixed-case input is recorded from the commands run, not visible in the image.
+
 Evidence: `screenshots/02-ai-egress-eid22-dns.png`, which shows Logic query 1 as documented, including the `lower()` step and the lookup, returning both mixed-case queries.
 
 ### Finding 2: DNS-only detection has a bypass, demonstrated
@@ -150,6 +168,24 @@ Result: 1 event at 2026-10-14 05:32:53.194, `user` = `analyst`, `host` = `DESKTO
 EID 3 confirms that a connection occurred and which process made it, but it does not attribute the connection to a domain. Mapping the IP back to an AI service would need IP range mapping, ASN data, or a threat intelligence feed. This lab has none of these.
 
 Evidence: `screenshots/02-ai-egress-eid3-network.png`, which shows Logic query 2 as documented.
+
+### Finding 4: browser-based access is not detected
+
+`Clear-DnsClientCache` was run first, so the result is not a cached-resolution artifact. Then `Start-Process "https://chatgpt.com"` opened chatgpt.com in Microsoft Edge.
+
+Result: Events with `Image` matching `msedge` were EID 1 only, count 2. No EID 22 and no EID 3. Over the same window, every EID 22 event came from `powershell.exe`, and Logic query 1 returned no browser rows. `Sysmon64.exe -c` reports network connection and DNS lookup logging enabled, so the sensor is not the cause. A SwiftOnSecurity exclusion for Edge subprocesses and browser-side DNS over HTTPS are both candidate causes. Neither is confirmed.
+
+This detection therefore does not cover browser-based access. See Gap 2 in [docs/telemetry-gaps.md](../docs/telemetry-gaps.md).
+
+Evidence: `screenshots/02-edge-eventcode-1-only.png`, `screenshots/02-eid22-by-process-no-browser.png`, `screenshots/02-browser-no-dns-events.png`.
+
+### Finding 5: process attribution fails for short-lived processes
+
+`curl.exe -s -o NUL https://api.openai.com` produced EID 22 with the domain captured. The lookup resolved it to OpenAI API. `Image` was logged as `<unknown process>`. The likely cause is that `curl.exe` exits before Sysmon resolves the process to an image path.
+
+The domain is known, but the field that decides what the alert means is lost. See Gap 3 in [docs/telemetry-gaps.md](../docs/telemetry-gaps.md).
+
+Evidence: `screenshots/02-curl-unknown-process.png`.
 
 ## Detection coverage layers
 
@@ -184,9 +220,9 @@ _No entries yet._
 
 ## Severity and response
 
-**Severity:** Low for browser-initiated, Medium for script-initiated, High when combined with detection 03 (archive staging) within a 30 minute window.
+**Severity:** Medium for script-initiated, High when combined with detection 03 (archive staging) within a 30 minute window. Browser-initiated access would be Low, but it is not detected in this lab (Gap 2 in [docs/telemetry-gaps.md](../docs/telemetry-gaps.md)). When `Image` is `<unknown process>`, the initiating process cannot be determined from this event (Gap 3).
 
 **Triage steps:**
-1. Identify the initiating process. Browser or not. That single fact routes the rest of the investigation.
+1. Identify the initiating process. Browser or not. That single fact routes the rest of the investigation. If `Image` is `<unknown process>`, this cannot be answered from EID 22 alone.
 2. Pivot on `ProcessGuid` to Sysmon EID 11 (FileCreate) and file read activity in the preceding 15 minutes. What was the process touching before it reached out.
 3. Establish whether the user has a documented business need. This is a governance question, not a security question, and it should be routed to a person, not escalated to IR.

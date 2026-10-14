@@ -161,6 +161,42 @@ These were documentation and logic errors, not telemetry problems. The sensor an
 
 ---
 
+## 2026-10-14 — Detection 02 tested against four client types
+
+**What I was trying to do:** Test detection 02 against the client types it claims to cover, not only PowerShell: a browser, `curl.exe`, and `nslookup.exe`.
+
+**What happened:**
+
+- **Microsoft Edge.** Ran `Clear-DnsClientCache`, then `Start-Process "https://chatgpt.com"`. Events with `Image` matching `msedge` were EID 1 only, count 2. No EID 22 and no EID 3. Over the same window, every EID 22 event came from `powershell.exe`. Evidence: `screenshots/02-edge-eventcode-1-only.png`, `screenshots/02-eid22-by-process-no-browser.png`, `screenshots/02-browser-no-dns-events.png`.
+- **`curl.exe`.** `curl.exe -s -o NUL https://api.openai.com` produced EID 22 with the domain captured, and the lookup resolved it to OpenAI API. `Image` was logged as `<unknown process>`. Evidence: `screenshots/02-curl-unknown-process.png`.
+- **`nslookup.exe`.** No EID 22, as recorded in the earlier entry.
+- **`Invoke-WebRequest` to an API endpoint.** `Invoke-WebRequest https://api.openai.com` returned the API's welcome JSON. The same approach against the chatgpt.com front end earlier returned a Cloudflare bot challenge.
+- **Destination IPs.** A third Cloudflare address, `172.66.0.243`, appeared alongside `104.18.32.47` and `162.159.140.245`.
+- **Sysmon config.** `Sysmon64.exe -c` reports "Network connection: enabled", "DNS lookup: enabled", and "Image loading: disabled".
+
+Detection 02 fully works against one of the four client types.
+
+**How I diagnosed it:**
+
+- Browser: clearing the DNS cache first ruled out cached resolution. `Sysmon64.exe -c` showing network and DNS logging enabled ruled out the driver. `swift.xml` line 202 has a process-creation exclusion under a `SECTION: Microsoft:Edge` comment for command lines beginning `"C:\Program Files (x86)\Microsoft\Edge Dev\Application\msedge.exe" --type=`. That path is Edge Dev, not standard Edge, so it may not be the rule in effect. Browser-side DNS over HTTPS has not been ruled out. Cause unconfirmed.
+- curl: the domain was captured but the image was not, which points to `curl.exe` exiting before Sysmon resolves the process. Not confirmed.
+
+**Operational note:** `Sysmon64.exe -c` silently produces no output when run without administrator rights. Three config checks returned empty for this reason, which led to an incorrect conclusion that the config contained no browser exclusions. The checks were re-run elevated.
+
+**Fix:** No fix for the browser or curl gaps yet. Recorded them in a new standing document, `docs/telemetry-gaps.md`, with a coverage matrix and one section per gap. Rescoped detection 02's hypothesis to programmatic access from scripted clients and added a Coverage section to it. Linked the gaps document from the README.
+
+**What I would do differently:** Test the browser path first. It is the dominant real-world path for shadow AI, and it was the last client type tested. Run every `Sysmon64.exe -c` check from an elevated prompt, and treat empty output as a failed check rather than an answer.
+
+**Follow-up:**
+
+- Gap 2, browser: confirm whether the SwiftOnSecurity Edge exclusion or browser DNS over HTTPS is responsible. Open.
+- Gap 3, short-lived processes: find a way to attribute `<unknown process>` DNS events. Open.
+- Gap 6, subdomain matching. Open.
+- Detection 02 test 4 (hardcoded IP) has not been run. EID 3 was not tested for `curl.exe` or `nslookup.exe`.
+- Neither detection has run against normal activity, so no false positive rate has been measured. Both remain Validated, not Complete.
+
+---
+
 ## Entry template
 
 ## YYYY-MM-DD — Title
