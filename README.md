@@ -25,27 +25,27 @@ The detection set is deliberately split. The shadow AI and data movement detecti
 ## Architecture
 
 ```
-                 Host: Windows 11, 16GB
-                 (Hyper-V + VBS disabled)
-                            |
-                     VirtualBox 7.x
-                            |
-        +-------------------------------------------+
-        |  VM: Windows 10 Enterprise Eval, 6GB      |
-        |                                            |
-        |   Sysmon (sysmon-modular config)           |
-        |            |                               |
-        |            v                               |
-        |   Windows Event Log                        |
-        |            |                               |
-        |            v                               |
-        |   Splunk Enterprise (single instance)      |
-        |     + Splunk Add-on for Sysmon (app 5709)  |
-        |     + Splunk Add-on for Windows            |
-        |            ^                               |
-        |            |                               |
-        |   Atomic Red Team (attack generation)      |
-        +-------------------------------------------+
+                      Host: Windows 11, 16GB
+              (VBS active, VirtualBox on Native API)
+                                 |
+                          VirtualBox 7.x
+                                 |
+        +------------------------------------------------+
+        |   VM: Windows 11 Enterprise LTSC Eval, 6GB     |
+        |                                                |
+        |   Sysmon 15.22 (SwiftOnSecurity config)        |
+        |            |                                   |
+        |            v                                   |
+        |   Windows Event Log                            |
+        |            |                                   |
+        |            v                                   |
+        |   Splunk Enterprise 10.4.3 (single instance)   |
+        |     + Splunk Add-on for Sysmon (app 5709)      |
+        |     + Splunk Add-on for Windows                |
+        |            ^                                   |
+        |            |                                   |
+        |   Atomic Red Team (attack generation)          |
+        +------------------------------------------------+
 ```
 
 Single VM by design. Attack generation happens on the monitored host, which is exactly how insider and shadow-AI activity actually originates. See [docs/architecture.md](docs/architecture.md) for the reasoning and [docs/lab-build.md](docs/lab-build.md) for the build log.
