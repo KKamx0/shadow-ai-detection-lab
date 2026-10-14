@@ -25,7 +25,7 @@ Windows audit policy required: none for Sysmon EID 1. For 4104, enable Script Bl
 **Pre-check query.** If this returns zero, the sensor is misconfigured. Fix that before touching the rule.
 
 ```spl
-index=* sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode=1
+index=* sourcetype=XmlWinEventLog EventCode=1
 | search process_name="powershell.exe" OR process_name="pwsh.exe"
 | stats count by process_name, parent_process_name
 ```
@@ -37,7 +37,7 @@ Sigma rule: [`sigma/windows/process_creation/encoded_powershell_command.yml`](..
 SPL as run in this lab:
 
 ```spl
-index=endpoint sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode=1
+index=endpoint sourcetype=XmlWinEventLog EventCode=1
   (process_name="powershell.exe" OR process_name="pwsh.exe")
   (CommandLine="* -enc *" OR CommandLine="* -EncodedCommand *" OR CommandLine="* -ec *"
    OR CommandLine="* -e *")
@@ -60,20 +60,22 @@ The payload is base64 of the UTF-16LE string `whoami`.
 
 Validated 2026-10-14 on host DESKTOP-TSIOB4T, user `analyst`, Sysmon 15.22 with the SwiftOnSecurity config, Splunk Enterprise 10.4.3.
 
-Query run:
+Query run: the Logic SPL above, exactly as written.
 
-```spl
-index=endpoint EventCode=1 (CommandLine="* -enc *" OR CommandLine="* -EncodedCommand *" OR CommandLine="* -ec *")
-| table _time, User, process_name, CommandLine
-```
+Result: Detection returned exactly 1 event, at 2026-10-14 05:20:51.179, with every field populated:
 
-This is not identical to the SPL in the Logic section. It has no `sourcetype` or `process_name` filter and no `-e` clause. The Logic SPL filters on `sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"`, but in this lab the Sysmon events arrive with sourcetype `XmlWinEventLog`, so the Logic SPL needs to be re-run as written before it is relied on.
-
-Result: Detection returned exactly 1 event. `CommandLine` was captured in full, including the encoded payload: `"C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe" -enc dwBoAG8AYQBtAGkA`. Attributed to `DESKTOP-TSIOB4T\analyst`.
+| Field | Value |
+| --- | --- |
+| `user` | `analyst` |
+| `host` | `DESKTOP-TSIOB4T` |
+| `parent_process_name` | `powershell.exe` |
+| `process_name` | `powershell.exe` |
+| `CommandLine` | `"C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe" -enc dwBoAG8AYQBtAGkA` |
+| `encoded_len` | 81 |
 
 This confirms the rule fires on the baseline invocation. It does not test the `-e` prefix variant, Atomic Red Team T1059.001, or invocations that fall inside the SwiftOnSecurity PowerShell exclusions.
 
-Evidence: `screenshots/01-encoded-powershell-fired.png`
+Evidence: `screenshots/01-encoded-powershell-fired.png`, which shows the Logic SPL as documented and its result.
 
 ## False positives
 

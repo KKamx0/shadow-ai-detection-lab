@@ -107,21 +107,54 @@ Licence is valid 90 days and extendable twice with `slmgr /rearm`.
 **What happened:**
 
 - Pipeline confirmed end to end. A search for `index=endpoint EventCode=1` over 24 hours returned 8,315 events, with `Computer`, `User`, `process_name`, and `CommandLine` extracted by the Splunk Add-on for Sysmon. Evidence: `screenshots/00-pipeline-sysmon-fields-parsed.png`.
-- Detection 01 returned exactly one event for `powershell.exe -enc dwBoAG8AYQBtAGkA`, with the full `CommandLine` and user `DESKTOP-TSIOB4T\analyst`. Evidence: `screenshots/01-encoded-powershell-fired.png`.
-- Detection 02: `Resolve-DnsName chatgpt.com` and `Invoke-WebRequest https://chatgpt.com` each produced a Sysmon EID 22 event with `Image` = `powershell.exe` and `QueryName` = `chatgpt.com`. The matching EID 3 event recorded `104.18.32.47:443` with an empty `DestinationHostname`. Evidence: `screenshots/02-ai-egress-eid22-dns.png`, `screenshots/02-ai-egress-eid3-network.png`.
+- Detection 01 returned exactly one event for `powershell.exe -enc dwBoAG8AYQBtAGkA`, with the full `CommandLine` and user `DESKTOP-TSIOB4T\analyst`. The screenshot from this run has since been replaced; see the next entry.
+- Detection 02: `Resolve-DnsName chatgpt.com` and `Invoke-WebRequest https://chatgpt.com` each produced a Sysmon EID 22 event with `Image` = `powershell.exe` and `QueryName` = `chatgpt.com`. The matching EID 3 event recorded `104.18.32.47:443` with an empty `DestinationHostname`. The screenshots from this run have since been replaced; see the next entry.
 - The first detection 02 test used `nslookup chatgpt.com`. It resolved successfully and produced no EID 22 event.
 
 **How I diagnosed it:** `Resolve-DnsName` and `Invoke-WebRequest` against the same domain did produce EID 22 events, so DNS query logging itself was working. The difference was the resolver path. `nslookup.exe` queries the configured DNS server directly and does not use the Windows DNS Client service, which is what Sysmon EID 22 records. `Resolve-DnsName` and `Invoke-WebRequest` both go through the DNS Client service.
 
 **Fix:** No sensor change. This is a property of EID 22, not a misconfiguration. Detection 02 now documents EID 3 as a required second signal, and the gap that remains (EID 3 gives a bare IP with no hostname) is recorded in the detection's coverage layers section.
 
-**What I would do differently:** Run the planned bypass test deliberately, as test 4 in detection 02 specifies, instead of finding the bypass by accident. Also run the documented Logic SPL exactly as written. The validation searches were simplified ad hoc queries, and the Logic SPL in both detection files filters on a sourcetype that does not match what this lab ingests.
+**What I would do differently:** Run the planned bypass test deliberately, as test 4 in detection 02 specifies, instead of finding the bypass by accident. Also run the documented Logic SPL exactly as written rather than simplified ad hoc queries. See the next entry.
 
 **Follow-up:**
 
-- Re-run the Logic SPL for detections 01 and 02 as written, and correct the `sourcetype` filter.
 - Detection 02 tests 1 (browser), 3 (`curl.exe`), and 4 (hardcoded IP) have not been run.
 - Neither detection has run against normal activity, so no false positive rate has been measured and neither has a tuning history entry.
+- The SwiftOnSecurity PowerShell exclusion follow-up from 2026-09-12 is still open.
+
+---
+
+## 2026-10-14 — Documented SPL corrected and re-run as written
+
+**What I was trying to do:** Run the Logic SPL for detections 01 and 02 exactly as written in the detection files, and replace the earlier screenshots, which showed simplified searches.
+
+**What happened:**
+
+- The documented SPL in both detection files filtered on `sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"`. That sourcetype does not exist in this lab. The SPL had never been executed, so the mismatch had gone unnoticed.
+- The screenshots from the earlier session showed simplified ad hoc queries, not the documented Logic SPL. They proved the telemetry was present but not that the documented detections worked.
+- Detection 02's SPL reduced `QueryName` to its last two labels before the lookup. `api.openai.com` became `openai.com`, which is not a row in `lookups/ai_services.csv`, so the lookup could never match an API domain.
+- The lookup table had never been uploaded into Splunk. Without it, detection 02's EID 22 query fails with "The lookup table 'ai_services.csv' does not exist or is not available."
+
+**How I diagnosed it:** `index=endpoint | stats count by sourcetype` returned `XmlWinEventLog` with 7,954 events over 24 hours. The label reduction turned `api.openai.com` into `openai.com`, which has no row in `ai_services.csv`, so API domains could not match. The missing lookup was reported directly by the search error.
+
+**Fix:**
+
+- Changed the sourcetype filter in both detection files, Logic and pre-check queries, to `sourcetype=XmlWinEventLog`.
+- Removed the label reduction from detection 02. The lookup now matches on the full `QueryName`.
+- Uploaded `lookups/ai_services.csv` through Settings > Lookups > Lookup table files, and documented the upload as a prerequisite in detection 02.
+- Added an EID 3 query to detection 02's Logic section. The file already argued that EID 3 is required to cover DNS evasion, but only the EID 22 query was written down.
+- Re-ran all three Logic queries as written and replaced the screenshots. Detection 01 returned 1 event with `user`, `host`, `parent_process_name`, and `encoded_len` populated. Detection 02's EID 22 query returned 2 rows, ChatGPT and OpenAI API. Detection 02's EID 3 query returned 1 event to `162.159.140.245:443` with an empty `DestinationHostname`. Evidence: `screenshots/01-encoded-powershell-fired.png`, `screenshots/02-ai-egress-eid22-dns.png`, `screenshots/02-ai-egress-eid3-network.png`.
+- The EID 3 destination differed from the earlier session (`104.18.32.47`). Both addresses are Cloudflare edge nodes. Recorded in detection 02's coverage layers section as evidence that IP-based attribution needs ASN or threat intelligence data rather than a fixed IP list.
+
+These were documentation and logic errors, not telemetry problems. The sensor and the pipeline were working throughout, and both detections had already fired correctly against the raw events in the earlier session.
+
+**What I would do differently:** Run the documented SPL as written before taking any evidence screenshot, and screenshot only that. A simplified query that works says nothing about whether the documented one does. Upload lookups and check sourcetypes with `stats count by sourcetype` as part of the pipeline check, before any detection is written against them.
+
+**Follow-up:**
+
+- Detection 02 tests 1 (browser), 3 (`curl.exe`), and 4 (hardcoded IP) have not been run.
+- Neither detection has run against normal activity, so no false positive rate has been measured and neither has a tuning history entry. Both remain Validated, not Complete.
 - The SwiftOnSecurity PowerShell exclusion follow-up from 2026-09-12 is still open.
 
 ---
