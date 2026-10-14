@@ -96,6 +96,36 @@ Licence is valid 90 days and extendable twice with `slmgr /rearm`.
 
 ---
 
+## 2026-10-14 — Splunk pipeline confirmed, detections 01 and 02 validated
+
+**Environment:** Windows 11 Enterprise LTSC VM, hostname DESKTOP-TSIOB4T, user `analyst`. Sysmon 15.22 with the SwiftOnSecurity config. Splunk Enterprise 10.4.3, `index=endpoint`, sourcetype `XmlWinEventLog`.
+
+**Hostname correction.** The VM hostname is DESKTOP-TSIOB4T, not VICTIM-01 as recorded in the 2026-09-12 entry. The intended hostname was never set. Open cosmetic item: rename the host to VICTIM-01, or leave it and treat VICTIM-01 in earlier entries as the intended name. `docs/architecture.md` now records the actual hostname. It has no effect on detection logic.
+
+**What I was trying to do:** Confirm Sysmon events reach Splunk with fields parsed, then validate detections 01 and 02 against live telemetry.
+
+**What happened:**
+
+- Pipeline confirmed end to end. A search for `index=endpoint EventCode=1` over 24 hours returned 8,315 events, with `Computer`, `User`, `process_name`, and `CommandLine` extracted by the Splunk Add-on for Sysmon. Evidence: `screenshots/00-pipeline-sysmon-fields-parsed.png`.
+- Detection 01 returned exactly one event for `powershell.exe -enc dwBoAG8AYQBtAGkA`, with the full `CommandLine` and user `DESKTOP-TSIOB4T\analyst`. Evidence: `screenshots/01-encoded-powershell-fired.png`.
+- Detection 02: `Resolve-DnsName chatgpt.com` and `Invoke-WebRequest https://chatgpt.com` each produced a Sysmon EID 22 event with `Image` = `powershell.exe` and `QueryName` = `chatgpt.com`. The matching EID 3 event recorded `104.18.32.47:443` with an empty `DestinationHostname`. Evidence: `screenshots/02-ai-egress-eid22-dns.png`, `screenshots/02-ai-egress-eid3-network.png`.
+- The first detection 02 test used `nslookup chatgpt.com`. It resolved successfully and produced no EID 22 event.
+
+**How I diagnosed it:** `Resolve-DnsName` and `Invoke-WebRequest` against the same domain did produce EID 22 events, so DNS query logging itself was working. The difference was the resolver path. `nslookup.exe` queries the configured DNS server directly and does not use the Windows DNS Client service, which is what Sysmon EID 22 records. `Resolve-DnsName` and `Invoke-WebRequest` both go through the DNS Client service.
+
+**Fix:** No sensor change. This is a property of EID 22, not a misconfiguration. Detection 02 now documents EID 3 as a required second signal, and the gap that remains (EID 3 gives a bare IP with no hostname) is recorded in the detection's coverage layers section.
+
+**What I would do differently:** Run the planned bypass test deliberately, as test 4 in detection 02 specifies, instead of finding the bypass by accident. Also run the documented Logic SPL exactly as written. The validation searches were simplified ad hoc queries, and the Logic SPL in both detection files filters on a sourcetype that does not match what this lab ingests.
+
+**Follow-up:**
+
+- Re-run the Logic SPL for detections 01 and 02 as written, and correct the `sourcetype` filter.
+- Detection 02 tests 1 (browser), 3 (`curl.exe`), and 4 (hardcoded IP) have not been run.
+- Neither detection has run against normal activity, so no false positive rate has been measured and neither has a tuning history entry.
+- The SwiftOnSecurity PowerShell exclusion follow-up from 2026-09-12 is still open.
+
+---
+
 ## Entry template
 
 ## YYYY-MM-DD — Title
