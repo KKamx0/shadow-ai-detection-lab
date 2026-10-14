@@ -144,7 +144,8 @@ Licence is valid 90 days and extendable twice with `slmgr /rearm`.
 - Removed the label reduction from detection 02. The lookup now matches on the full `QueryName`.
 - Uploaded `lookups/ai_services.csv` through Settings > Lookups > Lookup table files, and documented the upload as a prerequisite in detection 02.
 - Added an EID 3 query to detection 02's Logic section. The file already argued that EID 3 is required to cover DNS evasion, but only the EID 22 query was written down.
-- Re-ran all three Logic queries as written and replaced the screenshots. Detection 01 returned 1 event with `user`, `host`, `parent_process_name`, and `encoded_len` populated. Detection 02's EID 22 query returned 2 rows, ChatGPT and OpenAI API. Detection 02's EID 3 query returned 1 event to `162.159.140.245:443` with an empty `DestinationHostname`. Evidence: `screenshots/01-encoded-powershell-fired.png`, `screenshots/02-ai-egress-eid22-dns.png`, `screenshots/02-ai-egress-eid3-network.png`.
+- Re-ran all three Logic queries as written and replaced the screenshots. Detection 01 returned 1 event with `user`, `host`, `parent_process_name`, and `encoded_len` populated. Detection 02's EID 22 query returned 2 rows, ChatGPT and OpenAI API. The `api.openai.com` query was generated with `Resolve-DnsName api.openai.com` from an admin PowerShell session. Detection 02's EID 3 query returned 1 event to `162.159.140.245:443` with an empty `DestinationHostname`. Evidence: `screenshots/01-encoded-powershell-fired.png`, `screenshots/02-ai-egress-eid22-dns.png`, `screenshots/02-ai-egress-eid3-network.png`.
+- Lowercased `QueryName` before the lookup in detection 02. DNS is case-insensitive but Splunk lookups are case-sensitive by default, so a query for `ChatGPT.com` would have silently missed the `chatgpt.com` row. Verified with `Resolve-DnsName ChatGPT.com` and `Resolve-DnsName API.OpenAI.com`: both matched, returning ChatGPT and OpenAI API at 05:42:57. The detection 02 screenshot was replaced with this run. Resolved.
 - The EID 3 destination differed from the earlier session (`104.18.32.47`). Both addresses are Cloudflare edge nodes. Recorded in detection 02's coverage layers section as evidence that IP-based attribution needs ASN or threat intelligence data rather than a fixed IP list.
 
 These were documentation and logic errors, not telemetry problems. The sensor and the pipeline were working throughout, and both detections had already fired correctly against the raw events in the earlier session.
@@ -153,6 +154,7 @@ These were documentation and logic errors, not telemetry problems. The sensor an
 
 **Follow-up:**
 
+- Detection 02 does not match subdomains. The lookup matches the full `QueryName` exactly, so `cdn.chatgpt.com` or `api.chatgpt.com` will not match a CSV row for `chatgpt.com`. Open.
 - Detection 02 tests 1 (browser), 3 (`curl.exe`), and 4 (hardcoded IP) have not been run.
 - Neither detection has run against normal activity, so no false positive rate has been measured and neither has a tuning history entry. Both remain Validated, not Complete.
 - The SwiftOnSecurity PowerShell exclusion follow-up from 2026-09-12 is still open.
