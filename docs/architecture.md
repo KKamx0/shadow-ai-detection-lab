@@ -63,14 +63,14 @@ Verified on 2026-09-12 after switching to the SwiftOnSecurity config. Presence o
 | --- | --- | --- |
 | 1 | Process creation | A process started. Provides `Image`, `CommandLine`, `ParentImage`, `Hashes`, `User`, and `ProcessGuid` |
 | 3 | Network connection | A process made a TCP or UDP connection. Provides source and destination IP and port and the initiating `Image` |
-| 4 | Sysmon service state changed | The Sysmon service started or stopped |
+| 4 | Sysmon service state changed | The Sysmon service started or stopped. **Unverified under the current config.** Seen on 2026-09-12 in the pre-switch run under sysmon-modular. Not observed in the post-switch run and not yet confirmed under SwiftOnSecurity |
 | 7 | Image loaded | A DLL or other module was loaded into a process. **Conflicting observations, cause not determined.** Observed on 2026-09-12 after the switch to SwiftOnSecurity, with a count of 23. On 2026-10-14, `Sysmon64.exe -c` reported "Image loading: disabled" under the same config. See Gap 8 in [telemetry-gaps.md](telemetry-gaps.md) |
 | 10 | Process access | One process opened a handle to another. Used to detect credential and memory access |
 | 11 | File create | A file was created or overwritten. Provides `TargetFilename` |
 | 12 | Registry object added or deleted | A registry key or value was created or deleted |
 | 13 | Registry value set | A registry value was modified. Provides `TargetObject` and `Details` |
 | 16 | Sysmon config state changed | The Sysmon configuration was changed |
-| 17 | Pipe created | A named pipe was created |
+| 17 | Pipe created | A named pipe was created. **Unverified under the current config.** Seen on 2026-09-12 in the pre-switch run under sysmon-modular. Not observed in the post-switch run and not yet confirmed under SwiftOnSecurity |
 | 22 | DNS query | A process issued a DNS query. Provides `QueryName` and the initiating `Image` |
 
 ## Detection telemetry dependencies
