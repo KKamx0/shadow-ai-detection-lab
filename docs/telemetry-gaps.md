@@ -80,7 +80,9 @@ The cause is unconfirmed.
 
 **Affects:** Detection 02's severity model depends entirely on the initiating process. Browser-initiated access is a policy conversation, script-initiated access is automated data movement. When `Image` is unresolved, the domain is known but the field that determines what the alert means is lost.
 
-**Evidence:** `screenshots/02-curl-unknown-process.png`.
+One `curl.exe` invocation produced two EID 22 events one millisecond apart, both for `api.openai.com`, most likely separate A and AAAA lookups. A single client action can produce more than one DNS event, which matters for any count-based threshold.
+
+**Evidence:** `screenshots/02-curl-unknown-process.png`, `screenshots/02-curl-dual-dns-events.png`.
 
 ## Gap 4: TLS hides payload content
 
@@ -110,7 +112,7 @@ The lookup matches the full `QueryName` exactly, so `cdn.chatgpt.com` or `api.ch
 
 **Status:** Resolved 2026-10-14.
 
-Splunk lookups are case-sensitive by default and DNS is not, so a client sending `ChatGPT.com` would have silently missed the `chatgpt.com` row. Fixed by lowercasing `QueryName` with `eval` before the lookup. Verified with `Resolve-DnsName ChatGPT.com` and `Resolve-DnsName API.OpenAI.com`. Both matched.
+Splunk lookups are case-sensitive by default and DNS is not, so a client sending `ChatGPT.com` would have silently missed the `chatgpt.com` row. Fixed by lowercasing `QueryName` with `eval` before the lookup. Verified with `Resolve-DnsName ChatGPT.com` and `Resolve-DnsName API.OpenAI.com`. Both matched. `screenshots/02-curl-dual-dns-events.png` shows `API.OpenAI.com` logged in mixed case.
 
 **Affects:** Detection 02.
 

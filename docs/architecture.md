@@ -64,7 +64,7 @@ Verified on 2026-09-12 after switching to the SwiftOnSecurity config. Presence o
 | 1 | Process creation | A process started. Provides `Image`, `CommandLine`, `ParentImage`, `Hashes`, `User`, and `ProcessGuid` |
 | 3 | Network connection | A process made a TCP or UDP connection. Provides source and destination IP and port and the initiating `Image` |
 | 4 | Sysmon service state changed | The Sysmon service started or stopped |
-| 7 | Image loaded | A DLL or other module was loaded into a process |
+| 7 | Image loaded | A DLL or other module was loaded into a process. **Not currently generated.** Seen on 2026-09-12 under the sysmon-modular config, which was replaced the same day. Under the SwiftOnSecurity config, `Sysmon64.exe -c` reports "Image loading: disabled". See Gap 8 in [telemetry-gaps.md](telemetry-gaps.md) |
 | 10 | Process access | One process opened a handle to another. Used to detect credential and memory access |
 | 11 | File create | A file was created or overwritten. Provides `TargetFilename` |
 | 12 | Registry object added or deleted | A registry key or value was created or deleted |

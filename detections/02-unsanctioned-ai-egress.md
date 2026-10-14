@@ -147,7 +147,7 @@ Result: 2 rows, one per service. Both mixed-case queries matched.
 
 The OpenAI API row confirms the lookup matches API domains on the full `QueryName`. Both rows confirm that mixed-case queries are caught.
 
-The results are grouped by service, so `QueryName` is not displayed in the screenshot. The mixed-case input is recorded from the commands run, not visible in the image.
+The results are grouped by service, so `QueryName` is not displayed in this screenshot. The mixed-case input is visible in `screenshots/02-curl-dual-dns-events.png`, which lists raw EID 22 events and shows `QueryName` = `API.OpenAI.com` from `powershell.exe` at 05:42:57.239. That is the visual proof that the mixed-case query reached Splunk in mixed case and still matched.
 
 Evidence: `screenshots/02-ai-egress-eid22-dns.png`, which shows Logic query 1 as documented, including the `lower()` step and the lookup, returning both mixed-case queries.
 
@@ -183,9 +183,13 @@ Evidence: `screenshots/02-edge-eventcode-1-only.png`, `screenshots/02-eid22-by-p
 
 `curl.exe -s -o NUL https://api.openai.com` produced EID 22 with the domain captured. The lookup resolved it to OpenAI API. `Image` was logged as `<unknown process>`. The likely cause is that `curl.exe` exits before Sysmon resolves the process to an image path.
 
+The single `curl.exe` invocation produced two EID 22 events one millisecond apart, at 05:54:45.528 and 05:54:45.529, both for `api.openai.com` and both with `Image` = `<unknown process>`. This is almost certainly separate A and AAAA record lookups, since `Resolve-DnsName` returned both IPv4 and IPv6 records for that domain. It is not confirmed.
+
+A single client action can therefore produce more than one DNS event. Any count-based threshold built on `query_count` in this detection has to allow for that, or one request will look like two.
+
 The domain is known, but the field that decides what the alert means is lost. See Gap 3 in [docs/telemetry-gaps.md](../docs/telemetry-gaps.md).
 
-Evidence: `screenshots/02-curl-unknown-process.png`.
+Evidence: `screenshots/02-curl-unknown-process.png`, and `screenshots/02-curl-dual-dns-events.png`, which shows the two `<unknown process>` events with their timestamps.
 
 ## Detection coverage layers
 
