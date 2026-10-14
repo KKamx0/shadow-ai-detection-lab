@@ -30,7 +30,7 @@ Only one of the four client types is fully covered.
 | 5 | Destination IPs are unstable | 02 | Open |
 | 6 | Subdomain matching | 02 | Open |
 | 7 | Lookup case sensitivity | 02 | Resolved 2026-10-14 |
-| 8 | Image loading events are disabled | None currently | Recorded |
+| 8 | EID 7 status conflicts | None currently | Open, cause not determined |
 | 9 | SwiftOnSecurity config filters some PowerShell process creation | 01 | Open, untested |
 
 ---
@@ -116,11 +116,17 @@ Splunk lookups are case-sensitive by default and DNS is not, so a client sending
 
 **Affects:** Detection 02.
 
-## Gap 8: Image loading events are disabled
+## Gap 8: EID 7 status conflicts
 
-**Status:** Confirmed. Not currently affecting any detection.
+**Status:** Open. Two observations conflict, and the cause has not been determined. Not currently affecting any detection.
 
-`Sysmon64.exe -c` reports "Image loading: disabled", so EID 7 is not generated under the current config. No detection in this repository depends on it. Recorded so that a future detection does not assume it is available.
+**Observation 1:** On 2026-09-12, after the switch to the SwiftOnSecurity config, a single grouped count run returned EID 7 with a count of 23, alongside EID 1, 3, 10, 11, 12, 13, 16, and 22.
+
+**Observation 2:** On 2026-10-14, under the same config, `Sysmon64.exe -c` reported "Image loading: disabled".
+
+Both cannot describe the same state. Either image loading was disabled at some point after 2026-09-12, or the `Sysmon64.exe -c` label means something other than whether EID 7 is generated. Neither has been checked.
+
+No detection in this repository depends on EID 7. Until this is resolved, a future detection should not assume EID 7 is available.
 
 ## Gap 9: SwiftOnSecurity config filters some PowerShell process creation
 

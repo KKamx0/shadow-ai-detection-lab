@@ -192,6 +192,7 @@ Detection 02 fully works against one of the four client types.
 - Gap 2, browser: confirm whether the SwiftOnSecurity Edge exclusion or browser DNS over HTTPS is responsible. Open.
 - Gap 3, short-lived processes: find a way to attribute `<unknown process>` DNS events. Open.
 - Gap 6, subdomain matching. Open.
+- Gap 8, EID 7 status: EID 7 was observed after the 2026-09-12 switch to SwiftOnSecurity (count 23), but `Sysmon64.exe -c` now reports "Image loading: disabled" under the same config. Determine whether image loading was disabled at some point after 2026-09-12, or whether the `Sysmon64.exe -c` label means something other than EID 7 generation. Open.
 - Detection 02 test 4 (hardcoded IP) has not been run. EID 3 was not tested for `curl.exe` or `nslookup.exe`.
 - Neither detection has run against normal activity, so no false positive rate has been measured. Both remain Validated, not Complete.
 
